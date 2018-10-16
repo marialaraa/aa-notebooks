@@ -1,5 +1,7 @@
 import numpy as np
 from collections import Counter
+import operator
+import pandas as  pd
 
 def construir_arbol(instancias, etiquetas):
     # ALGORITMO RECURSIVO para construcción de un árbol de decisión binario. 
@@ -90,7 +92,6 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
     max_ganancia = 0
     mejor_pregunta = None
     for columna in instancias.columns:
-        print(columna)
         for valor in set(instancias[columna]):
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
@@ -102,3 +103,40 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
                 max_ganancia = ganancia
                 mejor_pregunta = pregunta            
     return max_ganancia, mejor_pregunta
+
+def predecir(arbol, x_t):    
+    if type(arbol).__name__ == 'Hoja':
+        maxLabel = max(arbol.cuentas.items(), key=operator.itemgetter(1))
+        prediccion = maxLabel[0]
+    else:
+        if x_t[arbol.pregunta.atributo] == arbol.pregunta.valor:
+            prediccion = predecir(arbol.sub_arbol_izquierdo, x_t)
+        else: 
+            prediccion = predecir(arbol.sub_arbol_derecho, x_t)
+    
+    return prediccion
+        
+class MiClasificadorArbol(): 
+    def __init__(self, X_columns):
+        self.arbol = None
+        self.columnas = X_columns
+    
+    def fit(self, X_train, y_train):
+        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train)
+        return self
+    
+    def predict(self, X_test):
+        predictions = []
+        for x_t in X_test:
+            x_t_df = pd.DataFrame([x_t], columns=self.columnas).iloc[0]
+            prediction = predecir(self.arbol, x_t_df) 
+            predictions.append(prediction)
+        return predictions
+    
+    def score(self, X_test, y_test):
+        y_pred = self.predict(X_test)
+        
+        accuracy = sum(y_i == y_j for (y_i, y_j) in zip(y_pred, y_test)) / len(y_test)
+        return accuracy
+
+
