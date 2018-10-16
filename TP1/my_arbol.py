@@ -3,23 +3,24 @@ from collections import Counter
 import operator
 import pandas as  pd
 
-def construir_arbol(instancias, etiquetas):
+def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max):
     # ALGORITMO RECURSIVO para construcción de un árbol de decisión binario. 
     # Suponemos que estamos parados en la raiz del árbol y tenemos que decidir cómo construirlo. 
     ganancia, pregunta = encontrar_mejor_atributo_y_corte(instancias, etiquetas)
     
-    # Criterio de corte: ¿Hay ganancia?
-    if ganancia == 0:
+    # Criterio de corte: ¿Hay ganancia? ¿llegamos a la profundidad máxima?
+    if ganancia == 0 or profundidad_actual == profundidad_max :
         #  Si no hay ganancia en separar, no separamos. 
         return Hoja(etiquetas)
     else: 
+    	profundidad_actual += 1
         # Si hay ganancia en partir el conjunto en 2
         instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen = partir_segun(pregunta, instancias, etiquetas)
         # partir devuelve instancias y etiquetas que caen en cada rama (izquierda y derecha)
 
         # Paso recursivo (consultar con el computador más cercano)
-        sub_arbol_izquierdo = construir_arbol(instancias_cumplen, etiquetas_cumplen)
-        sub_arbol_derecho   = construir_arbol(instancias_no_cumplen, etiquetas_no_cumplen)
+        sub_arbol_izquierdo = construir_arbol(instancias_cumplen, etiquetas_cumplen, profundidad_actual, profundidad_max)
+        sub_arbol_derecho   = construir_arbol(instancias_no_cumplen, etiquetas_no_cumplen, profundidad_actual, profundidad_max)
         # los pasos anteriores crean todo lo que necesitemos de sub-árbol izquierdo y sub-árbol derecho
         
         # sólo falta conectarlos con un nodo de decisión:
@@ -121,8 +122,8 @@ class MiClasificadorArbol():
         self.arbol = None
         self.columnas = X_columns
     
-    def fit(self, X_train, y_train):
-        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train)
+    def fit(self, X_train, y_train, profundidad_max):
+        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train, 0, profundidad_max)
         return self
     
     def predict(self, X_test):
