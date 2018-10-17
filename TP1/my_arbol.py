@@ -13,7 +13,7 @@ def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max):
         #  Si no hay ganancia en separar, no separamos. 
         return Hoja(etiquetas)
     else: 
-    	profundidad_actual += 1
+        profundidad_actual += 1
         # Si hay ganancia en partir el conjunto en 2
         instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen = partir_segun(pregunta, instancias, etiquetas)
         # partir devuelve instancias y etiquetas que caen en cada rama (izquierda y derecha)
@@ -56,9 +56,13 @@ class Pregunta:
         return "¿Es el valor para {} menor a {}?".format(self.atributo, self.valor)
     
 def gini(etiquetas):
-    pSi = np.mean([x == 'Si' for x in etiquetas])    
-    pNo = np.mean([x == 'No' for x in etiquetas])    
-    
+    pNo, pSi = 0, 0    
+
+    if 1 in etiquetas:
+        pSi = np.mean([x == 1 for x in etiquetas])    
+    if 0 in etiquetas:
+        pNo = np.mean([x == 0 for x in etiquetas])    
+
     impureza = 1 - pSi*pSi - pNo*pNo
     return impureza
 
