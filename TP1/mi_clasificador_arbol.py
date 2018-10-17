@@ -29,7 +29,6 @@ def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, 
 # Definición de la estructura del árbol. 
 class Hoja:
     #  Contiene las cuentas para cada clase (en forma de diccionario)
-    #  Por ejemplo, {'Si': 2, 'No': 2}
     def __init__(self, etiquetas):
         self.cuentas = dict(Counter(etiquetas))
 
@@ -68,7 +67,7 @@ def gini(etiquetas):
 
 def entropy(etiquetas):
     p = np.sum(etiquetas==0) / len(etiquetas)
-    return (-1) * p * log2(p) - (1 - p) * log2(1 - p)
+    return (-1) * p * np.log2(p) - (1 - p) * log2(1 - p)
 
 def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
     giniD = gini(etiquetas_rama_derecha)
