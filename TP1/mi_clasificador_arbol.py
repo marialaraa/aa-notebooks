@@ -19,8 +19,8 @@ def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, 
         # partir devuelve instancias y etiquetas que caen en cada rama (izquierda y derecha)
 
         # Paso recursivo (consultar con el computador más cercano)
-        sub_arbol_izquierdo = construir_arbol(instancias_cumplen, etiquetas_cumplen, profundidad_actual, profundidad_max)
-        sub_arbol_derecho   = construir_arbol(instancias_no_cumplen, etiquetas_no_cumplen, profundidad_actual, profundidad_max)
+        sub_arbol_izquierdo = construir_arbol(instancias_cumplen, etiquetas_cumplen, profundidad_actual, profundidad_max, criterion)
+        sub_arbol_derecho   = construir_arbol(instancias_no_cumplen, etiquetas_no_cumplen, profundidad_actual, profundidad_max, criterion)
         # los pasos anteriores crean todo lo que necesitemos de sub-árbol izquierdo y sub-árbol derecho
         
         # sólo falta conectarlos con un nodo de decisión:
@@ -118,7 +118,7 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
            
             if criterion == "gini":
                 ganancia = ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
-            elif criterion == "entropy"
+            elif criterion == "entropy":
                 ganancia = ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
             
             if ganancia > max_ganancia:
@@ -139,13 +139,14 @@ def predecir(arbol, x_t):
     return prediccion
         
 class MiClasificadorArbol(): 
-    def __init__(self, X_columns, criterion="gini"):
+    def __init__(self, X_columns, criterion="gini", profundidad_max=3):
         self.arbol = None
         self.columnas = X_columns
         self.criterion = criterion
+        self.profundidad_max = profundidad_max
     
-    def fit(self, X_train, y_train, profundidad_max):
-        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train, 0, profundidad_max, self.criterion)
+    def fit(self, X_train, y_train):
+        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train, 0, self.profundidad_max, self.criterion)
         return self
     
     def predict(self, X_test):
