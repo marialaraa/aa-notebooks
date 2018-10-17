@@ -3,10 +3,10 @@ from collections import Counter
 import operator
 import pandas as  pd
 
-def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max):
+def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, criterion):
     # ALGORITMO RECURSIVO para construcción de un árbol de decisión binario. 
     # Suponemos que estamos parados en la raiz del árbol y tenemos que decidir cómo construirlo. 
-    ganancia, pregunta = encontrar_mejor_atributo_y_corte(instancias, etiquetas)
+    ganancia, pregunta = encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion)
     
     # Criterio de corte: ¿Hay ganancia? ¿llegamos a la profundidad máxima?
     if ganancia == 0 or profundidad_actual == profundidad_max :
@@ -66,6 +66,10 @@ def gini(etiquetas):
     impureza = 1 - pSi*pSi - pNo*pNo
     return impureza
 
+def entropy(etiquetas):
+    p = np.sum(etiquetas==0) / len(etiquetas)
+    return (-1) * p * log2(p) - (1 - p) * log2(1 - p)
+
 def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
     giniD = gini(etiquetas_rama_derecha)
     giniI = gini(etiquetas_rama_izquierda)
@@ -74,26 +78,36 @@ def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
     lenI = len(etiquetas_rama_izquierda)
     n = lenD + lenI
     
-    giniAtributo = (lenD * giniD + lenI * giniI)/n
+    giniAtributo = (lenD * giniD + lenI * giniI) / n
     giniOriginal = gini(np.append(etiquetas_rama_izquierda, etiquetas_rama_derecha))
     
-    ganancia_gini = giniOriginal - giniAtributo
-    return ganancia_gini
+    return giniOriginal - giniAtributo
 
+def ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
+    entropyOriginal = entropy(np.append(etiquetas_rama_izquierda, etiquetas_rama_derecha))
+    
+    entropyD = entropy(etiquetas_rama_derecha)
+    entropyI = entropy(etiquetas_rama_izquierda)
+    
+    lenD = len(etiquetas_rama_derecha)
+    lenI = len(etiquetas_rama_izquierda)
+    n = lenD + lenI
+    
+    entropyAtributo = (lenD * entropyD + lenI * entropyI) / n
+    
+    return entropyOriginal - entropyAtributo
 
 def partir_segun(pregunta, instancias, etiquetas):
-    # Esta función debe separar instancias y etiquetas según si cada instancia cumple o no con la pregunta (ver método 'cumple')
-    
     ind = instancias[pregunta.atributo] < pregunta.valor
 
-    instancias_cumplen   = instancias[ind]
-    etiquetas_cumplen    = np.array(etiquetas)[ind]    
-    instancias_no_cumplen= instancias[-ind]
+    instancias_cumplen = instancias[ind]
+    etiquetas_cumplen = np.array(etiquetas)[ind]    
+    instancias_no_cumplen = instancias[-ind]
     etiquetas_no_cumplen = np.array(etiquetas)[-ind]    
     
     return instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen
 
-def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
+def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
     max_ganancia = 0
     mejor_pregunta = None
     for columna in instancias.columns:
@@ -101,8 +115,11 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas):
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
             _, etiquetas_rama_izquierda, _, etiquetas_rama_derecha = partir_segun(pregunta, instancias, etiquetas)
-   
-            ganancia = ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
+           
+            if criterion == "gini":
+                ganancia = ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
+            elif criterion == "entropy"
+                ganancia = ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
             
             if ganancia > max_ganancia:
                 max_ganancia = ganancia
@@ -122,12 +139,13 @@ def predecir(arbol, x_t):
     return prediccion
         
 class MiClasificadorArbol(): 
-    def __init__(self, X_columns):
+    def __init__(self, X_columns, criterion="gini"):
         self.arbol = None
         self.columnas = X_columns
+        self.criterion = criterion
     
     def fit(self, X_train, y_train, profundidad_max):
-        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train, 0, profundidad_max)
+        self.arbol = construir_arbol(pd.DataFrame(X_train, columns=self.columnas), y_train, 0, profundidad_max, self.criterion)
         return self
     
     def predict(self, X_test):
