@@ -115,9 +115,8 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
     mejor_pregunta = None
 
     for columna in instancias.columns:
-        #for valor in set(instancias[columna]):
-
-        for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.1)):
+        for valor in set(instancias[columna]):
+        #for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.1)):
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
             _, etiquetas_rama_izquierda, _, etiquetas_rama_derecha = partir_segun(pregunta, instancias, etiquetas)
