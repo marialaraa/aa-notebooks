@@ -2,18 +2,21 @@ import numpy as np
 from collections import Counter
 import operator
 import pandas as  pd
+import random
+import math
 
 def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, criterion):
+    profundidad_actual = profundidad_actual + 1
+
     # ALGORITMO RECURSIVO para construcción de un árbol de decisión binario. 
     # Suponemos que estamos parados en la raiz del árbol y tenemos que decidir cómo construirlo. 
     ganancia, pregunta = encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion)
-    
+
     # Criterio de corte: ¿Hay ganancia? ¿llegamos a la profundidad máxima?
     if ganancia == 0 or profundidad_actual == profundidad_max :
         #  Si no hay ganancia en separar, no separamos. 
         return Hoja(etiquetas)
     else: 
-        profundidad_actual += 1
         # Si hay ganancia en partir el conjunto en 2
         instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen = partir_segun(pregunta, instancias, etiquetas)
         # partir devuelve instancias y etiquetas que caen en cada rama (izquierda y derecha)
@@ -22,7 +25,7 @@ def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, 
         sub_arbol_izquierdo = construir_arbol(instancias_cumplen, etiquetas_cumplen, profundidad_actual, profundidad_max, criterion)
         sub_arbol_derecho   = construir_arbol(instancias_no_cumplen, etiquetas_no_cumplen, profundidad_actual, profundidad_max, criterion)
         # los pasos anteriores crean todo lo que necesitemos de sub-árbol izquierdo y sub-árbol derecho
-        
+
         # sólo falta conectarlos con un nodo de decisión:
         return Nodo_De_Decision(pregunta, sub_arbol_izquierdo, sub_arbol_derecho)
     
@@ -67,7 +70,7 @@ def gini(etiquetas):
 
 def entropy(etiquetas):
     p = np.sum(etiquetas==0) / len(etiquetas)
-    return (-1) * p * np.log2(p) - (1 - p) * log2(1 - p)
+    return (-1) * p * np.log2(p) - (1 - p) * np.log2(1 - p)
 
 def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
     giniD = gini(etiquetas_rama_derecha)
@@ -97,20 +100,24 @@ def ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derech
     return entropyOriginal - entropyAtributo
 
 def partir_segun(pregunta, instancias, etiquetas):
-    ind = instancias[pregunta.atributo] < pregunta.valor
+    ind_cumplen = instancias[pregunta.atributo] < pregunta.valor
+    ind_no_cumplen = instancias[pregunta.atributo] >= pregunta.valor
 
-    instancias_cumplen = instancias[ind]
-    etiquetas_cumplen = np.array(etiquetas)[ind]    
-    instancias_no_cumplen = instancias[-ind]
-    etiquetas_no_cumplen = np.array(etiquetas)[-ind]    
+    instancias_cumplen = instancias[ind_cumplen]
+    etiquetas_cumplen = np.array(etiquetas)[ind_cumplen]    
+    instancias_no_cumplen = instancias[ind_no_cumplen]
+    etiquetas_no_cumplen = np.array(etiquetas)[ind_no_cumplen]    
     
     return instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen
 
 def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
     max_ganancia = 0
     mejor_pregunta = None
+
     for columna in instancias.columns:
-        for valor in set(instancias[columna]):
+        #for valor in set(instancias[columna]):
+
+        for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.1)):
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
             _, etiquetas_rama_izquierda, _, etiquetas_rama_derecha = partir_segun(pregunta, instancias, etiquetas)
@@ -122,7 +129,8 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
             
             if ganancia > max_ganancia:
                 max_ganancia = ganancia
-                mejor_pregunta = pregunta            
+                mejor_pregunta = pregunta   
+
     return max_ganancia, mejor_pregunta
 
 def predecir(arbol, x_t):    
@@ -130,7 +138,7 @@ def predecir(arbol, x_t):
         maxLabel = max(arbol.cuentas.items(), key=operator.itemgetter(1))
         prediccion = maxLabel[0]
     else:
-        if x_t[arbol.pregunta.atributo] == arbol.pregunta.valor:
+        if x_t[arbol.pregunta.atributo] < arbol.pregunta.valor:
             prediccion = predecir(arbol.sub_arbol_izquierdo, x_t)
         else: 
             prediccion = predecir(arbol.sub_arbol_derecho, x_t)
