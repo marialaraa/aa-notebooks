@@ -160,7 +160,7 @@ def predecir(arbol, x_t):
 def predecir_prob(arbol, x_t):
     if type(arbol).__name__ == 'Hoja':
         total = sum([v for v in arbol.cuentas.values()])
-        prediccion = arbol.cuentas[1]/total
+        prediccion = arbol.cuentas.get(1,0)/total
     else:
         if x_t[arbol.pregunta.atributo] < arbol.pregunta.valor:
             prediccion = predecir_prob(arbol.sub_arbol_izquierdo, x_t)
