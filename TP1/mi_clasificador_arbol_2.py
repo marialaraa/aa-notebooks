@@ -7,17 +7,17 @@ import random
 import math
 
 def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, criterion):
-    profundidad_actual = profundidad_actual + 1
-
     # ALGORITMO RECURSIVO para construcción de un árbol de decisión binario. 
     # Suponemos que estamos parados en la raiz del árbol y tenemos que decidir cómo construirlo. 
     ganancia, pregunta = encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion)
 
     # Criterio de corte: ¿Hay ganancia? ¿llegamos a la profundidad máxima?
-    if ganancia == 0 or profundidad_actual == profundidad_max:
+    if ganancia < 0.05 or profundidad_actual == profundidad_max:
         #  Si no hay ganancia en separar, no separamos. 
         return Hoja(etiquetas)
     else:
+        profundidad_actual = profundidad_actual + 1
+
         # Si hay ganancia en partir el conjunto en 2
         instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen = partir_segun(pregunta,
                                                                                                           instancias,
@@ -68,26 +68,32 @@ def gini(etiquetas):
     pNo, pSi = 0, 0
 
     if 1 in etiquetas:
-        pSi = np.mean([x == 1 for x in etiquetas])
+        pSi = np.sum(etiquetas == 1) / len(etiquetas)
     if 0 in etiquetas:
-        pNo = np.mean([x == 0 for x in etiquetas])
+        pNo = np.sum(etiquetas == 0) / len(etiquetas)
+        
+    #if not (pNo + pSi == 1):
+    #    print(etiquetas)
+    #    print(pSi, pNo)
 
-    impureza = 1 - pSi * pSi - pNo * pNo
+    impureza = 1 - (pSi * pSi) - (pNo * pNo)
     return impureza
 
 
 def entropy(etiquetas):
-    p = np.sum(etiquetas == 0) / len(etiquetas)
+    p = 0
+    if 0 in etiquetas:
+        p = np.sum(etiquetas == 0) / len(etiquetas)
     return (-1) * p * np.log2(p) - (1 - p) * np.log2(1 - p)
 
 
-def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
+def ganancia_gini(etiquetas_rama_izquierda, etiquetas_rama_derecha):
     giniD = gini(etiquetas_rama_derecha)
     giniI = gini(etiquetas_rama_izquierda)
 
     lenD = len(etiquetas_rama_derecha)
     lenI = len(etiquetas_rama_izquierda)
-    n = lenD + lenI
+    n    = lenD + lenI
 
     giniAtributo = (lenD * giniD + lenI * giniI) / n
     giniOriginal = gini(np.append(etiquetas_rama_izquierda, etiquetas_rama_derecha))
@@ -95,7 +101,7 @@ def ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
     return giniOriginal - giniAtributo
 
 
-def ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha):
+def ganancia_entropy(etiquetas_rama_izquierda, etiquetas_rama_derecha):
     entropyOriginal = entropy(np.append(etiquetas_rama_izquierda, etiquetas_rama_derecha))
 
     entropyD = entropy(etiquetas_rama_derecha)
@@ -111,37 +117,45 @@ def ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derech
 
 
 def partir_segun(pregunta, instancias, etiquetas):
-    ind_cumplen = instancias[pregunta.atributo] < pregunta.valor
+    ind_cumplen    = instancias[pregunta.atributo] <  pregunta.valor
     ind_no_cumplen = instancias[pregunta.atributo] >= pregunta.valor
 
-    instancias_cumplen = instancias[ind_cumplen]
-    etiquetas_cumplen = np.array(etiquetas)[ind_cumplen]
+    instancias_cumplen    = instancias[ind_cumplen]
     instancias_no_cumplen = instancias[ind_no_cumplen]
-    etiquetas_no_cumplen = np.array(etiquetas)[ind_no_cumplen]
+    etiquetas_cumplen     = np.array(etiquetas)[ind_cumplen]
+    etiquetas_no_cumplen  = np.array(etiquetas)[ind_no_cumplen]
 
     return instancias_cumplen, etiquetas_cumplen, instancias_no_cumplen, etiquetas_no_cumplen
 
 
 def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
-    max_ganancia = 0
+    max_ganancia = -1
     mejor_pregunta = None
 
     for columna in instancias.columns:
         valores = set(instancias[columna])
         #valores = range(min(instancias[columna]), max(instancias[columna]), int(round(len(instancias[columna])/2)))
         #for valor in valores:
-        for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.4)):
+        # for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.1)):
+        lim_inf  = min(instancias[columna])
+        lim_sup  = max(instancias[columna])
+        cantidad = math.ceil(len(list(instancias[columna]))*0.4)
+        for valor in np.random.uniform(lim_inf, lim_sup, cantidad):
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
             _, etiquetas_rama_izquierda, _, etiquetas_rama_derecha = partir_segun(pregunta, instancias, etiquetas)
+            
+            # Si una rama me queda vacía, no me interesa usar este corte
+            if (len(etiquetas_rama_izquierda) == 0) or (len(etiquetas_rama_derecha) == 0):
+                continue
 
-            if criterion == "gini":
-                ganancia = ganancia_gini(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
+            if   criterion == "gini":
+                ganancia = ganancia_gini(etiquetas_rama_izquierda, etiquetas_rama_derecha)
             elif criterion == "entropy":
-                ganancia = ganancia_entropy(instancias, etiquetas_rama_izquierda, etiquetas_rama_derecha)
+                ganancia = ganancia_entropy(etiquetas_rama_izquierda, etiquetas_rama_derecha)
 
             if ganancia > max_ganancia:
-                max_ganancia = ganancia
+                max_ganancia   = ganancia
                 mejor_pregunta = pregunta
 
     return max_ganancia, mejor_pregunta
@@ -149,7 +163,7 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
 
 def predecir(arbol, x_t):
     if type(arbol).__name__ == 'Hoja':
-        maxLabel = max(arbol.cuentas.items(), key=operator.itemgetter(1))
+        maxLabel   = max(arbol.cuentas.items(), key=operator.itemgetter(1))
         prediccion = maxLabel[0]
     else:
         if x_t[arbol.pregunta.atributo] < arbol.pregunta.valor:
