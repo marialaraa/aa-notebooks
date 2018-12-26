@@ -3,7 +3,8 @@ from collections import Counter
 
 import numpy as np
 import pandas as  pd
-
+import random
+import math
 
 def construir_arbol(instancias, etiquetas, profundidad_actual, profundidad_max, criterion):
     profundidad_actual = profundidad_actual + 1
@@ -126,8 +127,10 @@ def encontrar_mejor_atributo_y_corte(instancias, etiquetas, criterion):
     mejor_pregunta = None
 
     for columna in instancias.columns:
-        for valor in set(instancias[columna]):
-            # for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.1)):
+        valores = set(instancias[columna])
+        #valores = range(min(instancias[columna]), max(instancias[columna]), int(round(len(instancias[columna])/2)))
+        #for valor in valores:
+        for valor in random.sample(list(instancias[columna]), math.ceil(len(list(instancias[columna]))*0.4)):
             # Probando corte para atributo y valor
             pregunta = Pregunta(columna, valor)
             _, etiquetas_rama_izquierda, _, etiquetas_rama_derecha = partir_segun(pregunta, instancias, etiquetas)
